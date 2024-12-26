@@ -24,6 +24,7 @@ class GraphARM(nn.Module):
                  device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
         super(GraphARM, self).__init__()
         self.device = device
+        print('GraphARM device:', self.device)
         self.diffusion_ordering_network = diffusion_ordering_network.to(device)
         self.denoising_network = denoising_network.to(device)
         self.masker = NodeMasking(dataset)
@@ -73,7 +74,7 @@ class GraphARM(nn.Module):
 
             # create diffusion trajectory
             diffusion_trajectory = [original_data]
-            masked_data = graph.clone()
+            masked_data = graph.clone().to(self.device)
             for i in range(len(node_order)):
                 node = node_order[i]
                 masked_data = masked_data.clone().to(self.device)
@@ -122,7 +123,7 @@ class GraphARM(nn.Module):
         '''
         loss = 0
         T = len(diffusion_trajectory) - 1 # Total number of time steps
-        sigma_t = torch.stack(sigma_t_dist_list, dim=0)
+        sigma_t = torch.stack(sigma_t_dist_list, dim=0).to(self.device)
         G_0 = diffusion_trajectory[0]  # Original graph
 
         for t in range(0, T):
@@ -140,7 +141,7 @@ class GraphARM(nn.Module):
             
             original_edge_types = G_0.edge_attr[(G_0.edge_index[0] == node_order_invariate[t]) & 
                                               (torch.tensor([G_0.edge_index[1][i] in node_order_invariate[t:] 
-                                                             for i in range(G_0.edge_index.shape[1])]))]
+                                                             for i in range(G_0.edge_index.shape[1])])).to(self.device)]
             nll_edge = self.compute_nll_edge(edge_type_probs, original_edge_types)
 
             loss += nll_node + nll_edge
@@ -166,7 +167,7 @@ class GraphARM(nn.Module):
 
         return ordering_loss / M
 
-    def train_step(self, train_batch, val_batch, M):
+    def train_step(self, train_batch, val_batch, M, epoch):
         '''
         Performs one training step for both the denoising and diffusion ordering networks.
         '''
@@ -176,8 +177,7 @@ class GraphARM(nn.Module):
         # Generate diffusion trajectories for each graph in the batch
         total_denoising_loss = 0
         total_ordering_loss = 0
-
-        for graph in train_batch:
+        for graph in tqdm(train_batch, desc='Training Ep {}'.format(epoch)):
             graph = self.preprocess(graph)
             diffusion_trajectories = self.generate_diffusion_trajectories(graph, M)
             
@@ -189,8 +189,7 @@ class GraphARM(nn.Module):
         total_denoising_loss.backward()
         self.denoising_optimizer.step()
         wandb.log({"denoising_loss": total_denoising_loss.item()})
-
-        for graph in val_batch:
+        for graph in tqdm(val_batch, desc='Validation Ep {}'.format(epoch)):
             graph = self.preprocess(graph)
             diffusion_trajectories = self.generate_diffusion_trajectories(graph, M)
 

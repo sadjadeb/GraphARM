@@ -10,7 +10,8 @@ from models import DiffusionOrderingNetwork, DenoisingNetwork
 from utils import NodeMasking
 from grapharm import GraphARM
 
-device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+# device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+device = 'cuda:2'
 print(f"Using device {device}")
 
 # instanciate the dataset
@@ -61,18 +62,19 @@ grapharm = GraphARM(
 )
 
 batch_size = 5
-dataset = dataset[0:5]
+# dataset = dataset[0:7]
+print('Dataset: ', dataset)
 try:
     grapharm.load_model()
     print("Loaded model")
 except:
     print ("No model to load")
 # train loop
-for epoch in range(2000):
-    print(f"Epoch {epoch}")
+for epoch in tqdm(range(2000)):
     grapharm.train_step(
         train_batch=dataset[2*epoch*batch_size:(2*epoch + 1)*batch_size],
         val_batch=dataset[(2*epoch + 1)*batch_size:batch_size*(2*epoch + 2)],
-        M=4
+        M=4,
+        epoch=epoch
     )
     grapharm.save_model()
