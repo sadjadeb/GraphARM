@@ -3,13 +3,7 @@ from tqdm import tqdm
 import torch
 import wandb
 import torch.nn as nn
-import logging
-
-from models import DiffusionOrderingNetwork, DenoisingNetwork
 from utils import NodeMasking
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
 
 
 class GraphARM(nn.Module):
@@ -21,7 +15,7 @@ class GraphARM(nn.Module):
                  dataset,
                  denoising_network,
                  diffusion_ordering_network,
-                 device=torch.device('cuda' if torch.cuda.is_available() else 'cpu')):
+                 device='cpu'):
         super(GraphARM, self).__init__()
         self.device = device
         print('GraphARM device:', self.device)

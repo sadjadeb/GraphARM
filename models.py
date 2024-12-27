@@ -1,8 +1,6 @@
 import torch
 from torch import nn
 from torch_geometric.nn.conv import RGCNConv
-from torch_geometric.nn import GAT
-from torch_geometric.utils import add_self_loops, degree
 from torch.nn import functional as F
 from torch.nn import Linear, ReLU
 import math
@@ -128,11 +126,11 @@ class MPLayer(MessagePassing):
     def __init__(self, in_channels, out_channels):
         super().__init__(aggr='sum') #  "Max" aggregation.
         self.f = nn.Sequential(Linear(3 * in_channels, out_channels),
-                       nn.ReLU(),
-                       Linear(out_channels, out_channels)) # MLP for message construction
+                        ReLU(),
+                        Linear(out_channels, out_channels)) # MLP for message construction
         self.g = nn.Sequential(Linear(3 * in_channels, out_channels),
-                          nn.ReLU(),
-                          Linear(out_channels, out_channels)) # MLP for attention coefficients
+                        ReLU(),
+                        Linear(out_channels, out_channels)) # MLP for attention coefficients
         
         self.gru = nn.GRU(2*out_channels, out_channels)
         
@@ -183,15 +181,15 @@ class DenoisingNetwork(nn.Module):
             self.layers.append(MPLayer(hidden_dim, hidden_dim)).to(self.device)
 
         self.mlp_alpha = nn.Sequential(Linear(3*hidden_dim, hidden_dim),
-                                       nn.ReLU(),
+                                       ReLU(),
                                        Linear(hidden_dim, self.K)).to(self.device)
         
         self.node_pred_layer = nn.Sequential(Linear(2*hidden_dim, hidden_dim),
-                                       nn.ReLU(),
+                                       ReLU(),
                                        Linear(hidden_dim, num_node_types)).to(self.device)
         
         self.edge_pred_layer = nn.Sequential(Linear(hidden_dim, hidden_dim),
-                                       nn.ReLU(),
+                                       ReLU(),
                                        Linear(hidden_dim, num_edge_types*K)).to(self.device)
 
 
